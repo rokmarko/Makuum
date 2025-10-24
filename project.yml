@@ -1,0 +1,49 @@
+# Project Information
+project_name: Makita Vacuum Cleaner ESP32
+version: 1.0.0
+target: ESP32-WROOM
+framework: ESP-IDF
+
+# Dependencies
+esp_idf_version: ">=4.4"
+required_components:
+  - bt
+  - driver
+  - esp_system
+  - freertos
+  - log
+  - nvs_flash
+
+# Hardware Configuration
+mcu: ESP32
+flash_size: 4MB
+ram_size: 520KB
+bluetooth: BLE only
+wifi: disabled
+
+# GPIO Usage
+gpio_2: LED_STATUS (configurable)
+
+# Features
+features:
+  - Bluetooth Low Energy (BLE) communication
+  - LED status indication
+  - Tool power detection via GATT
+  - Automatic vacuum control
+  - BLE advertising and GATT server
+  - Configurable timeouts
+
+# Build Targets
+targets:
+  - esp32
+
+# Configuration Files
+config_files:
+  - sdkconfig.defaults
+  - Kconfig.projbuild
+
+# Main Components
+components:
+  - main: Main application and state machine
+  - bt_manager: Bluetooth communication
+  - led_control: LED pattern management

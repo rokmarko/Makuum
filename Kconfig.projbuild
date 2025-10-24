@@ -1,0 +1,30 @@
+menu "Makita Vacuum Configuration"
+
+    config LED_GPIO
+        int "LED GPIO number"
+        range 0 39
+        default 2
+        help
+            GPIO number for the status LED.
+            Most ESP32 development boards have an onboard LED connected to GPIO2.
+
+    config BT_DEVICE_NAME
+        string "Bluetooth device name"
+        default "Makita_Vacuum_Cleaner"
+        help
+            Name of the Bluetooth device as it appears to other devices.
+
+    config VACUUM_ACTIVATION_TIMEOUT
+        int "Vacuum activation timeout (seconds)"
+        range 10 300
+        default 30
+        help
+            How long the vacuum stays active after receiving a power-on signal.
+
+    config DEBUG_MODE
+        bool "Enable debug mode"
+        default y
+        help
+            Enable additional debug logging and status information.
+
+endmenu

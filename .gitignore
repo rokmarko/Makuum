@@ -1,0 +1,106 @@
+# ESP-IDF Build System
+build/
+sdkconfig
+sdkconfig.old
+*.tmp
+.config
+
+# Dependencies
+dependencies.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Flash download tool files
+*.bin
+*.elf
+*.map
+
+# Custom application files (uncomment if needed)
+# *.hex
+# *.app
+
+# Local environment variables
+.env
+.env.local
+.env.*.local
+
+# Test artifacts
+test_results/
+coverage/
+
+# Documentation build
+docs/_build/
+
+# Partition table binaries (if auto-generated)
+partitions.bin
+
+# Custom build scripts output
+*.out
+
+# IDF tools
+tools/
+
+# Components that might be downloaded
+components/*/
+!components/*/component.mk
+!components/*/CMakeLists.txt
+!components/*/*.c
+!components/*/*.h
+!components/*/*.cpp
+!components/*/*.hpp
+
+# Managed components
+managed_components/
+
+# IDF version file
+.idf_version
+
+# Flash encryption and secure boot keys
+*.pem
+*.key
+flash_encryption_key.bin
+secure_boot_signing_key.pem
+
+# Unit test build artifacts
+unit-test-app/build/
+
+# Memory info files
+size.json
+size_*.json
