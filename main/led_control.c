@@ -7,7 +7,7 @@
 
 static const char *TAG = "LED_CONTROL";
 
-static gpio_num_t led_gpio = CONFIG_LED_GPIO;
+static gpio_num_t led_gpio = 23;  // Default LED GPIO
 static led_pattern_t current_pattern = LED_PATTERN_OFF;
 static bool led_state = false;
 static TaskHandle_t led_task_handle = NULL;

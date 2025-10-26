@@ -19,12 +19,12 @@ static bool ble_scanning = false;
 static bool nimble_synced = false;
 
 // Makita AWS Protocol Constants
-#define AWS_SERVICE_UUID_128        {0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0xf0, 0xff, 0x00, 0x00}
-#define AWS_CHARACTERISTIC_UUID_128 {0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0xf1, 0xff, 0x00, 0x00}
+// #define AWS_SERVICE_UUID_128        {0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0xf0, 0xff, 0x00, 0x00}
+// #define AWS_CHARACTERISTIC_UUID_128 {0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0xf1, 0xff, 0x00, 0x00}
 
 // AWS Protocol Data
-#define AWS_TOOL_ACTIVE_DATA    0x01
-#define AWS_TOOL_IDLE_DATA      0x00
+// #define AWS_TOOL_ACTIVE_DATA    0x01
+// #define AWS_TOOL_IDLE_DATA      0x00
 
 // Scan parameters for AWS tool detection - More aggressive scanning
 static struct ble_gap_disc_params ble_scan_params = {
@@ -65,7 +65,7 @@ static void process_aws_advertisement(const struct ble_gap_disc_desc *disc)
     const uint8_t *adv_data = disc->data;
     uint16_t adv_len = disc->length_data;
     
-    bool aws_service_found = false;
+    bool aws_tool_active = false;
     bool potential_aws_device = false;
     
     // Log raw advertisement data for debugging
@@ -84,88 +84,94 @@ static void process_aws_advertisement(const struct ble_gap_disc_desc *disc)
         ESP_LOGV(TAG, "AD type: 0x%02X, length: %d", type, length - 1);
         
         // Check for complete/incomplete local name (type 0x08, 0x09)
-        if (type == 0x08 || type == 0x09) {
-            char name[32] = {0};
-            int name_len = (length - 1) < 31 ? (length - 1) : 31;
-            memcpy(name, data, name_len);
-            ESP_LOGD(TAG, "📱 Device name: %s", name);
+        // if (type == 0x08 || type == 0x09) {
+        //     char name[32] = {0};
+        //     int name_len = (length - 1) < 31 ? (length - 1) : 31;
+        //     memcpy(name, data, name_len);
+        //     ESP_LOGD(TAG, "📱 Device name: %s", name);
             
-            // Check for AWS/Makita device names
-            if (strstr(name, "AWS") || strstr(name, "MAKITA") || 
-                strstr(name, "aws") || strstr(name, "makita") ||
-                strstr(name, "TOOL")) {
-                potential_aws_device = true;
-                ESP_LOGI(TAG, "🎯 Potential AWS device name found: %s", name);
-            }
-        }
+        //     // Check for AWS/Makita device names
+        //     if (strstr(name, "AWS") || strstr(name, "MAKITA") || 
+        //         strstr(name, "aws") || strstr(name, "makita") ||
+        //         strstr(name, "TOOL")) {
+        //         potential_aws_device = true;
+        //         ESP_LOGI(TAG, "🎯 Potential AWS device name found: %s", name);
+        //     }
+        // }
         
         // Check for 16-bit service UUIDs (type 0x02, 0x03)
-        else if ((type == 0x02 || type == 0x03) && (length - 1) >= 2) {
-            for (int j = 0; j < (length - 1); j += 2) {
-                uint16_t uuid = (data[j + 1] << 8) | data[j];
-                ESP_LOGV(TAG, "16-bit Service UUID: 0x%04X", uuid);
-                if (uuid == 0xFFF0) {  // AWS service UUID (16-bit version)
-                    aws_service_found = true;
-                    ESP_LOGI(TAG, "🔍 Found AWS 16-bit service UUID: 0xFFF0");
+        // else if ((type == 0x02 || type == 0x03) && (length - 1) >= 2) {
+        //     for (int j = 0; j < (length - 1); j += 2) {
+        //         uint16_t uuid = (data[j + 1] << 8) | data[j];
+        //         ESP_LOGV(TAG, "16-bit Service UUID: 0x%04X", uuid);
+        //         if (uuid == 0xFFF0) {  // AWS service UUID (16-bit version)
+        //             aws_service_found = true;
+        //             ESP_LOGI(TAG, "🔍 Found AWS 16-bit service UUID: 0xFFF0");
+        //         }
+        //     }
+        // }
+        
+        // Check for 128-bit service UUID (type 0x06 or 0x07)
+        // else if ((type == 0x06 || type == 0x07) && (length - 1) == 16) {
+        //     // Compare with AWS service UUID
+        //     uint8_t aws_uuid[] = AWS_SERVICE_UUID_128;
+        //     if (memcmp(data, aws_uuid, 16) == 0) {
+        //         aws_service_found = true;
+        //         ESP_LOGI(TAG, "🔍 Found AWS 128-bit service UUID in advertisement");
+        //     }
+            
+        //     // Log UUID for debugging
+        //     ESP_LOGD(TAG, "128-bit UUID: %02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+        //             data[15], data[14], data[13], data[12],
+        //             data[11], data[10], data[9], data[8],
+        //             data[7], data[6], data[5], data[4],
+        //             data[3], data[2], data[1], data[0]);
+        // }
+        
+        // Check for manufacturer data that might contain tool status
+        if (type == 0xFF && (length - 1) >= 4) {
+            ESP_LOGD(TAG, "📦 Manufacturer data found, length: %d, %x,%x", length - 1, data[0], data[1]);
+            
+            // Check for AWS tool active pattern
+            if (data[2] == 3 && data[3] == 6) {
+                potential_aws_device = true;
+                ESP_LOGD(TAG, "🔋 AWS tool detected");
+                if (data[0] == 0xfd && data[1] == 0xaa) {
+                    ESP_LOGD(TAG, "🔋 AWS tool ACTIVE signal detected in manufacturer data");
+                    aws_tool_active = true;
                 }
             }
         }
         
-        // Check for 128-bit service UUID (type 0x06 or 0x07)
-        else if ((type == 0x06 || type == 0x07) && (length - 1) == 16) {
-            // Compare with AWS service UUID
-            uint8_t aws_uuid[] = AWS_SERVICE_UUID_128;
-            if (memcmp(data, aws_uuid, 16) == 0) {
-                aws_service_found = true;
-                ESP_LOGI(TAG, "🔍 Found AWS 128-bit service UUID in advertisement");
-            }
-            
-            // Log UUID for debugging
-            ESP_LOGD(TAG, "128-bit UUID: %02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                    data[15], data[14], data[13], data[12],
-                    data[11], data[10], data[9], data[8],
-                    data[7], data[6], data[5], data[4],
-                    data[3], data[2], data[1], data[0]);
-        }
-        
-        // Check for manufacturer data that might contain tool status
-        else if (type == 0xFF && (length - 1) >= 4) {
-            ESP_LOGD(TAG, "📦 Manufacturer data found, length: %d, %x,%x", length - 1, data[0], data[1]);
-            
-            // Check for AWS tool active pattern
-            if (data[0] == 0xfd && data[1] == 0xaa) {
-                ESP_LOGI(TAG, "🔋 AWS tool ACTIVE signal detected in manufacturer data");
-                potential_aws_device = true;
-            }
-        }
-        
         // Check for service data
-        else if (type == 0x16 && (length - 1) >= 2) {
-            uint16_t service_uuid = (data[1] << 8) | data[0];
-            ESP_LOGV(TAG, "Service data for UUID: 0x%04X", service_uuid);
-            if (service_uuid == 0xFFF0) {
-                aws_service_found = true;
-                ESP_LOGI(TAG, "🔍 Found AWS service data");
-            }
-        }
+        // else if (type == 0x16 && (length - 1) >= 2) {
+        //     uint16_t service_uuid = (data[1] << 8) | data[0];
+        //     ESP_LOGV(TAG, "Service data for UUID: 0x%04X", service_uuid);
+        //     if (service_uuid == 0xFFF0) {
+        //         aws_service_found = true;
+        //         ESP_LOGI(TAG, "🔍 Found AWS service data");
+        //     }
+        // }
         
         i += length + 1;
     }
     
     // Detect AWS tool based on service UUID OR potential device name
-    if (aws_service_found || potential_aws_device) {
-        if (!aws_tool_detected) {
-            ESP_LOGI(TAG, "🔌 AWS Tool detected - ACTIVATING vacuum!");
-            aws_tool_detected = true;
-            
-            if (app_event_group) {
+    if (potential_aws_device && app_event_group) {
+        xEventGroupSetBits(app_event_group, BT_CONNECTED_BIT);
+
+        if (aws_tool_active != aws_tool_detected) {
+            aws_tool_detected = aws_tool_active;
+            if(aws_tool_active) {
+                // ESP_LOGI(TAG, "🔌 AWS tool ACTIVATED");
                 xEventGroupSetBits(app_event_group, TOOL_POWER_ON_BIT);
-                xEventGroupSetBits(app_event_group, BT_CONNECTED_BIT);
+                // Reset the power-off timer since we're still seeing the tool
+                start_power_off_timer();
+            } else {
+                // ESP_LOGI(TAG, "🔌 AWS tool DEACTIVATED");
+                xEventGroupClearBits(app_event_group, TOOL_POWER_ON_BIT);
             }
         }
-        
-        // Reset the power-off timer since we're still seeing the tool
-        start_power_off_timer();
     }
 }
 
@@ -181,12 +187,12 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg)
                          event->disc.addr.val[3], event->disc.addr.val[4], event->disc.addr.val[5]);
                 
                 // Log all devices with decent signal strength
-                // if (event->disc.rssi > -70) {
-                //     ESP_LOGD(TAG, "📱 BLE device: %s, RSSI: %d dBm, AD len: %d", 
-                //             addr_str, event->disc.rssi, event->disc.length_data);
-                // } else {
-                //     ESP_LOGV(TAG, "📱 BLE device: %s, RSSI: %d dBm (weak)", addr_str, event->disc.rssi);
-                // }
+                if (event->disc.rssi > -70) {
+                    ESP_LOGD(TAG, "📱 BLE device: %s, RSSI: %d dBm, AD len: %d", 
+                            addr_str, event->disc.rssi, event->disc.length_data);
+                } else {
+                    ESP_LOGV(TAG, "📱 BLE device: %s, RSSI: %d dBm (weak)", addr_str, event->disc.rssi);
+                }
                 
                 // Process advertisement for AWS protocol
                 process_aws_advertisement(&event->disc);
@@ -232,8 +238,8 @@ static void on_nimble_sync(void)
     if (rc == 0) {
         ble_scanning = true;
         ESP_LOGI(TAG, "🔍 BLE scanning started - looking for AWS tools");
-        ESP_LOGI(TAG, "📋 Listening for Makita AWS devices (AWS_XXXX, AWSTOOL, MAKITA)");
-        ESP_LOGI(TAG, "📋 Monitoring service UUIDs: 0xFFF0, 0000fff0-0000-1000-8000-00805f9b34fb");
+        // ESP_LOGI(TAG, "📋 Listening for Makita AWS devices (AWS_XXXX, AWSTOOL, MAKITA)");
+        // ESP_LOGI(TAG, "📋 Monitoring service UUIDs: 0xFFF0, 0000fff0-0000-1000-8000-00805f9b34fb");
     } else {
         ESP_LOGE(TAG, "Failed to start scanning: %d", rc);
     }

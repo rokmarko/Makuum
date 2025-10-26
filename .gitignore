@@ -4,6 +4,7 @@ sdkconfig
 sdkconfig.old
 *.tmp
 .config
+.cache/
 
 # Dependencies
 dependencies.lock
