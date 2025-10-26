@@ -177,7 +177,7 @@ static void vacuum_state_machine_task(void *pvParameters)
                         
                         // Simulate vacuum activation
                         ESP_LOGI(TAG, "🌪️  VACUUM CLEANER ACTIVATED! 🌪️");
-                        gpio_set_level(relay_gpio, 0); // Activate relay for indication
+                        gpio_set_level(relay_gpio, 0);
                         
                         // Clear the power on bit after activation
                         // xEventGroupClearBits(vacuum_event_group, TOOL_POWER_ON_BIT);

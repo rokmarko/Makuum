@@ -14,7 +14,7 @@
 static const char *TAG = "AWS_BLE_MANAGER";
 
 static EventGroupHandle_t app_event_group = NULL;
-static bool aws_tool_detected = false;
+// static bool aws_tool_detected = false;
 static bool ble_scanning = false;
 static bool nimble_synced = false;
 
@@ -43,8 +43,6 @@ static void aws_tool_power_off_timer_cb(void *arg)
     if (app_event_group) {
         xEventGroupClearBits(app_event_group, TOOL_POWER_ON_BIT);
     }
-    
-    aws_tool_detected = false;
 }
 
 static esp_timer_handle_t power_off_timer = NULL;
@@ -55,9 +53,9 @@ static void start_power_off_timer(void)
     if (power_off_timer) {
         esp_timer_stop(power_off_timer);
     }
-    
-    // Start 3-second delay timer (as per AWS protocol)
-    esp_timer_start_once(power_off_timer, 3000000); // 3 seconds in microseconds
+
+    // Start 1-second delay timer (as per AWS protocol)
+    esp_timer_start_once(power_off_timer, 1000000); // 1 second in microseconds
 }
 
 static void process_aws_advertisement(const struct ble_gap_disc_desc *disc)
@@ -162,18 +160,9 @@ static void process_aws_advertisement(const struct ble_gap_disc_desc *disc)
 
         if(aws_tool_active) {
             // Reset the power-off timer since we're still seeing the tool
+            // ESP_LOGI(TAG, "🔌 AWS tool ACTIVATED");
+            xEventGroupSetBits(app_event_group, TOOL_POWER_ON_BIT);
             start_power_off_timer();
-        }
-
-        if (aws_tool_active != aws_tool_detected) {
-            aws_tool_detected = aws_tool_active;
-            if(aws_tool_active) {
-                // ESP_LOGI(TAG, "🔌 AWS tool ACTIVATED");
-                xEventGroupSetBits(app_event_group, TOOL_POWER_ON_BIT);
-            } else {
-                // ESP_LOGI(TAG, "🔌 AWS tool DEACTIVATED");
-                xEventGroupClearBits(app_event_group, TOOL_POWER_ON_BIT);
-            }
         }
     }
 }
@@ -289,16 +278,9 @@ esp_err_t bt_manager_init(EventGroupHandle_t event_group)
     return ESP_OK;
 }
 
-
-bool bt_is_connected(void)
-{
-    return aws_tool_detected;
-}
-
 esp_err_t bt_aws_tool_on(void)
 {
     ESP_LOGI(TAG, "🔌 Manual AWS tool ON");
-    aws_tool_detected = true;
     
     if (app_event_group) {
         xEventGroupSetBits(app_event_group, TOOL_POWER_ON_BIT);
@@ -309,40 +291,9 @@ esp_err_t bt_aws_tool_on(void)
     return ESP_OK;
 }
 
-esp_err_t bt_aws_tool_off(void)
-{
-    ESP_LOGI(TAG, "🔌 Manual AWS tool OFF (with 3s delay)");
-    start_power_off_timer();
-    return ESP_OK;
-}
-
-esp_err_t bt_aws_force_off(void)
-{
-    ESP_LOGI(TAG, "🔌 Force AWS tool OFF");
-    
-    if (power_off_timer) {
-        esp_timer_stop(power_off_timer);
-    }
-    
-    aws_tool_detected = false;
-    
-    if (app_event_group) {
-        xEventGroupClearBits(app_event_group, TOOL_POWER_ON_BIT);
-        xEventGroupClearBits(app_event_group, BT_CONNECTED_BIT);
-    }
-    
-    return ESP_OK;
-}
-
-bool bt_aws_is_tool_active(void)
-{
-    return aws_tool_detected;
-}
-
 void bt_aws_print_status(void)
 {
     ESP_LOGI(TAG, "📊 AWS Tool Status:");
-    ESP_LOGI(TAG, "   Tool detected: %s", aws_tool_detected ? "YES" : "NO");
     ESP_LOGI(TAG, "   BLE scanning: %s", ble_scanning ? "YES" : "NO");
     ESP_LOGI(TAG, "   Timer active: %s", power_off_timer ? "YES" : "NO");
 }
