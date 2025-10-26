@@ -15,7 +15,7 @@
 static const char *TAG = "MAKITA_VACUUM";
 
 #define BUTTON_GPIO 0
-#define RELAY_GPIO 15
+static gpio_num_t relay_gpio = 16;  // Default Relay GPIO
 #define DEVICE_NAME "Makita_Vacuum"
 
 // Event group for synchronization
@@ -61,13 +61,13 @@ static void IRAM_ATTR button_isr_handler(void* arg)
 
 static void relay_init(void)
 {  
-    ESP_LOGI(TAG, "Initializing Relay GPIO %d", RELAY_GPIO);
+    ESP_LOGI(TAG, "Initializing Relay GPIO %d", relay_gpio);
 
     // Configure GPIO
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_DISABLE,
         .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = (1ULL << RELAY_GPIO),
+        .pin_bit_mask = (1ULL << relay_gpio),
         .pull_down_en = 0,
         .pull_up_en = 0,
     };
@@ -77,6 +77,8 @@ static void relay_init(void)
         ESP_LOGE(TAG, "Relay GPIO config failed: %s", esp_err_to_name(ret));
         // return ret;
     }
+
+    gpio_set_level(relay_gpio, 0);
 }
 
 // Initialize pushbutton GPIO
@@ -127,10 +129,13 @@ static void vacuum_state_machine_task(void *pvParameters)
             
             // Visual feedback: brief LED flash pattern
             if (automatic_mode_enabled) {
+                gpio_set_level(relay_gpio, 1);
+
                 // Flash LED quickly 3 times to indicate auto mode enabled
                 led_set_pattern(LED_PATTERN_FAST_BLINK);
                 vTaskDelay(pdMS_TO_TICKS(2000));
             } else {
+                gpio_set_level(relay_gpio, 0); // Deactivate relay
                 // Single long flash to indicate auto mode disabled
                 led_set_pattern(LED_PATTERN_FAST_BLINK);
                 vTaskDelay(pdMS_TO_TICKS(2000));
@@ -172,6 +177,7 @@ static void vacuum_state_machine_task(void *pvParameters)
                         
                         // Simulate vacuum activation
                         ESP_LOGI(TAG, "🌪️  VACUUM CLEANER ACTIVATED! 🌪️");
+                        gpio_set_level(relay_gpio, 0); // Activate relay for indication
                         
                         // Clear the power on bit after activation
                         // xEventGroupClearBits(vacuum_event_group, TOOL_POWER_ON_BIT);
@@ -202,7 +208,8 @@ static void vacuum_state_machine_task(void *pvParameters)
                     ESP_LOGI(TAG, "Tool power OFF detected - returning to STANDBY");
                     current_state = VACUUM_STATE_STANDBY;
                     led_set_pattern(LED_PATTERN_SLOW_BLINK);
-                    
+                    gpio_set_level(relay_gpio, 1); // Deactivate relay for indication
+
                     // Simulate vacuum deactivation
                     ESP_LOGI(TAG, "🛑 VACUUM CLEANER DEACTIVATED! 🛑");
                 }

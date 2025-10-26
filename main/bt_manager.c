@@ -160,13 +160,16 @@ static void process_aws_advertisement(const struct ble_gap_disc_desc *disc)
     if (potential_aws_device && app_event_group) {
         xEventGroupSetBits(app_event_group, BT_CONNECTED_BIT);
 
+        if(aws_tool_active) {
+            // Reset the power-off timer since we're still seeing the tool
+            start_power_off_timer();
+        }
+
         if (aws_tool_active != aws_tool_detected) {
             aws_tool_detected = aws_tool_active;
             if(aws_tool_active) {
                 // ESP_LOGI(TAG, "🔌 AWS tool ACTIVATED");
                 xEventGroupSetBits(app_event_group, TOOL_POWER_ON_BIT);
-                // Reset the power-off timer since we're still seeing the tool
-                start_power_off_timer();
             } else {
                 // ESP_LOGI(TAG, "🔌 AWS tool DEACTIVATED");
                 xEventGroupClearBits(app_event_group, TOOL_POWER_ON_BIT);
