@@ -127,11 +127,11 @@ static void process_aws_advertisement(const struct ble_gap_disc_desc *disc)
         // }
         
         // Check for manufacturer data that might contain tool status
-        if (type == 0xFF && (length - 1) >= 4) {
-            ESP_LOGD(TAG, "📦 Manufacturer data found, length: %d, %x,%x", length - 1, data[0], data[1]);
+        if (type == 0xFF && (length - 1) == 4) {
+            ESP_LOGD(TAG, "📦 Manufacturer data found, length: %d, %x,%x, %x,%x", length - 1, data[0], data[1], data[2], data[3]);
             
             // Check for AWS tool active pattern
-            if (data[2] == 3 && data[3] == 6) {
+            if (((data[0]&0xfc) == 0xfc && (data[2] == 3 || data[2] == 6) && data[3] == 6)) {
                 potential_aws_device = true;
                 ESP_LOGD(TAG, "🔋 AWS tool detected");
                 if (data[0] == 0xfd && data[1] == 0xaa) {
